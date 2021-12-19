@@ -26,7 +26,7 @@ class QDailyThumbnailWidget(QtWidgets.QWidget):
         self.onServer = False
 
     def setOnServer(self):
-    	self.ui.overlay.hide()
+        self.ui.overlay.hide()
         self.onServer = True
 
     def setTextUp (self, text):
@@ -63,7 +63,7 @@ class QDailyThumbnailWidget(QtWidgets.QWidget):
         self.ui.frame.setGeometry(QtCore.QRect(5,5,self.size().height(),self.size().width()))
 
         self.ui.overlay.setGeometry(QtCore.QRect(self.size().width()-40 ,30,20, 20))
-
+    
         size = self.size() - QtCore.QSize(20,20)
         if size.height() < 150:
             self.ui.dateWidget.hide()
@@ -77,7 +77,7 @@ class QDailyThumbnailWidget(QtWidgets.QWidget):
             self.ui.discWidget.show()
             self.ui.statWidget.show()
             if not self.onServer == True:
-            	self.ui.overlay.show()
+                self.ui.overlay.show()
         if self.pixmapB == None :
             self.pixmapB = self.ui.iconQLabel.pixmap()
         if self.pixmapB :
