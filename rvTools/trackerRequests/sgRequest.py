@@ -22,24 +22,7 @@ shotgun =  shotgun_api3.Shotgun(defaultSession[0],
 
 
 
-class DbLogin(QtWidgets.QMainWindow):
-    def __init__ (self):
-        super(DbLogin, self).__init__()
-        uiFile = QtCore.QFile(r'C:\Users\mathi\password.ui')
-        uiFile.open(QtCore.QFile.ReadOnly)
-        loader = QtUiTools.QUiLoader()
-        self.ui = loader.load(uiFile, self)
-        self.ui.pushButton.clicked.connect(self.connect)
-        self.ui.show()
 
-    def connect(self):
-        shotgun =  shotgun_api3.Shotgun("https://nimbus.shotgunstudio.com",
-                                  login=self.ui.user_lineEdit.text(),
-                                  password=self.ui.password_lineEdit.text(),
-                                  auth_token=self.ui.fa_lineEdit.text())
-
-
-DbLogin()
 
 
 def getProjectsNames():
@@ -77,6 +60,16 @@ def getProjectPlaylists(projectName):
     else :
         return None
 
+def getProjectAssets(projectName):
+    assetNames = []
+    sgAssets = shotgun.find("Asset", [['project.Project.name', 'is', projectName]], ['code'])
+    if sgAssets:
+        for sgAsset in sgAssets:
+            assetNames.append(sgAsset['code'])
+        return assetNames
+    else :
+        return None
+
 
 def _getVersionFields():
     return ['code', 
@@ -103,7 +96,6 @@ def _getVersionFields():
 
 def getDailiesDetailsPerScene(projectName, scene):
     dailiesPerScene = _getVersionsPerScene(projectName, scene)
-    print(dailiesPerScene)
     dailiesDicts = []
     for daily in dailiesPerScene :
         dailiesDicts.append(_convertVersionToDictionnary(daily, scene))
@@ -116,6 +108,13 @@ def getDailiesDetailsPerSceneShot(projectName, scene, shot):
     for daily in dailiesPerSceneShot :
         dailiesDicts.append(_convertVersionToDictionnary(daily, scene))
     return dailiesDicts
+    
+def getDailiesDetailsPerAsset(projectName, asset):
+    dailiesPerSceneShot = _getVersionsPerAsset(projectName, asset)
+    dailiesDicts = []
+    for daily in dailiesPerSceneShot :
+        dailiesDicts.append(_convertVersionToDictionnary(daily, ''))
+    return dailiesDicts
 
 def getDailiesDetailsPerDate(projectName):
     dailiesPerDate = _getVersionsPerDate(projectName )
@@ -124,6 +123,12 @@ def getDailiesDetailsPerDate(projectName):
         dailiesDicts.append(_convertVersionToDictionnary(daily, 'unknown'))
     return dailiesDicts
 
+def getDailiesDetailsPerSearch(projectName, searchField):
+    dailiesPerSearch = _getVersionsPerSearch(projectName, searchField)
+    dailiesDicts = []
+    for daily in dailiesPerSearch :
+        dailiesDicts.append(_convertVersionToDictionnary(daily, 'unknown'))
+    return dailiesDicts
 
 def getDailiesDetailsPerPlaylist(projectName, playlist):
     dailiesPerPalylist = _getVersionsPerPlaylist(projectName, playlist)
@@ -148,6 +153,21 @@ def _getVersionsPerScene(projectName, scene):
         return sgVersions
     else :
         return []
+        
+        
+def _getVersionsPerSearch(projectName, searchField):
+    sgVersions = []
+    filters =     [
+                ['project.Project.name', 'is', projectName],
+                ['user', 'name_contains', searchField]
+                   ]
+    fields = _getVersionFields()
+    sgVersions = shotgun.find("Version",filters, fields)
+    if sgVersions :
+        return sgVersions
+    else :
+        return []
+
 
 
 def _getVersionsPerPlaylist(projectName, playlist):
@@ -169,6 +189,23 @@ def _getVersionsPerPlaylist(projectName, playlist):
 
 
         
+def _getVersionsPerAsset(projectName, asset):
+    sgVersions = None
+    sgSequences = shotgun.find("Asset", [['project.Project.name', 'is', projectName]], ['code'])
+    for sgSequence in sgSequences :
+        if sgSequence['code'] == asset :
+            filters = [
+                ['project.Project.name', 'is', projectName],
+                ['entity', 'is', {'type': 'Asset', 'id': sgSequence['id']}]
+                    ]
+
+            fields = _getVersionFields()
+            sgVersions = shotgun.find("Version",filters, fields)
+            break
+    if sgVersions :
+        return sgVersions
+    else :
+        return []
 
 
 def _getVersionsPerSceneShot(projectName, scene, shot):
@@ -223,7 +260,7 @@ def _convertVersionToDictionnary(sgVersion, scene):
             dailyDetails['shot'] = sgVersion['entity']['name']
             dailyDetails['scene'] = scene
             dailyDetails['framerange'] = sgVersion['frame_range']
-
+            dailyDetails['source'] = sgVersion['sg_path_to_frames']
             if sgVersion['sg_path_to_movie'] and os.path.isfile( sgVersion['sg_path_to_movie']):
                 dailyDetails['movie'] = sgVersion['sg_path_to_movie']
                 dailyDetails['onServer'] = True
@@ -244,7 +281,6 @@ def _convertVersionToDictionnary(sgVersion, scene):
 
 def _convertPlaylistVersionToDictionnary(sgVersion, scene):
     if sgVersion :
-            print sgVersion
        # try :
             dailyDetails = dict()
             dailyDetails['image'] = sgVersion['version.Version.image']
@@ -275,7 +311,7 @@ def _convertPlaylistVersionToDictionnary(sgVersion, scene):
         #    pass
 
 
-
+#dailyDetails['movie'] = str(defaultSession[0]) + '/file_serve/version/' + str(sgVersion['id']) + '/mp4'
 
 
 
